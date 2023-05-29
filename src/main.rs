@@ -1,7 +1,21 @@
 use axum::{routing::get, Router};
+use elasticsearch::{http::transport::Transport, Elasticsearch, IndexParts};
+use serde_json::json;
 
-async fn hello_world() -> String {
-    let request = reqwest::get("https://xivapi.com/Item/1675").await;
+static XIV_API: &str = "https://xivapi.com";
+
+async fn get_item() -> String {
+    let transport = Transport::single_node(XIV_API).unwrap();
+    let client = Elasticsearch::new(transport);
+    let request = client
+        .index(IndexParts::IndexId("item", "1"))
+        .body(json!(
+            {
+                "ID": 1613
+            }
+        ))
+        .send()
+        .await;
     if let Ok(response) = request {
         response.text().await.unwrap()
     } else {
@@ -11,7 +25,7 @@ async fn hello_world() -> String {
 
 #[shuttle_runtime::main]
 async fn axum() -> shuttle_axum::ShuttleAxum {
-    let router = Router::new().route("/", get(hello_world));
+    let router = Router::new().route("/", get(get_item));
 
     Ok(router.into())
 }
