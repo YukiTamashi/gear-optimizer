@@ -6,47 +6,52 @@ use serde_json::json;
 
 static XIV_API: &str = "https://xivapi.com/search";
 
+struct Query {
+	indexes: Vec<String>,
+
+}
+
 async fn get_item() -> String {
     let transport = Transport::single_node(XIV_API).unwrap();
     let body: JsonBody<serde_json::Value> = json!(
         {
             "query": {
-              "bool": {
-                "must": [
-                  {
-                    "wildcard": {
-                      "NameCombined_en": "*aiming*"
-                    }
-                  }
-                ],
-                "filter": [
-                  {
-                    "range": {
-                      "ItemSearchCategory.ID": {
-                        "gt": "1"
-                      }
-                    }
-                  },
-                  {
-                    "range": {
-                      "LevelItem": {
-                        "gte": "100"
-                      }
-                    }
-                  },
-                  {
-                    "range": {
-                      "LevelItem": {
-                        "lte": "125"
-                      }
-                    }
-                  }
-                ]
-              }
+                "bool": {
+                    "must": [
+                        {
+                            "wildcard": {
+                            "NameCombined_en": "*aiming*"
+                            }
+                        }
+                    ],
+                    "filter": [
+                        {
+                            "range": {
+                                "ItemSearchCategory.ID": {
+                                    "gt": "1"
+                                }
+                            }
+                        },
+                        {
+                            "range": {
+                                "LevelItem": {
+                                    "gte": "100"
+                                }
+                            }
+                        },
+                        {
+                            "range": {
+                                "LevelItem": {
+                                    "lte": "125"
+                                }
+                            }
+                        }
+                    ]
+                }
             },
-        }
-    )
+    })
     .into();
+
     let client = Elasticsearch::new(transport);
     let request = client
         .send(
@@ -62,11 +67,15 @@ async fn get_item() -> String {
         .text()
         .await
         .unwrap();
-    /*if let Ok(response) = request {
-        response.text().await.unwrap()
-    } else {
-        "request failed".to_owned()
-    }*/
     format!("{:?}", request)
-    /* */
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+	#[tokio::test]
+	async fn a() {
+		assert_eq!(get_item().await, "".to_string());
+	}
 }
