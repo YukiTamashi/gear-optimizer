@@ -2742,4 +2742,5 @@ dependencies = [
  "elasticsearch",
  "serde",
  "serde_json",
+ "tokio",
 ]
