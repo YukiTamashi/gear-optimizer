@@ -25,6 +25,10 @@ impl Client {
         let client = Elasticsearch::new(transport);
         Self{ client, key: Some(key) }
     }
+
+    fn client(&self) -> &Elasticsearch{
+        &self.client
+    }
 }
 
 
@@ -41,7 +45,7 @@ struct Query {
 enum Filter{}
 
 async fn get_item() -> String {
-    let transport = Transport::single_node(XIVAPI).unwrap();
+    let client = Client::new();
     let query = json!(
         {   "body":{
             "query":{"bool":{
@@ -65,8 +69,7 @@ async fn get_item() -> String {
     );
     println!("{:#}", query);
     let query: JsonBody<serde_json::Value> = query.into();
-    let client = Elasticsearch::new(transport);
-    let request = client
+    let request = client.client()
         .send(
             Method::Post,
             XIVAPI,
