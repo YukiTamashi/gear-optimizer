@@ -4,6 +4,18 @@ use elasticsearch::{
 };
 use serde_json::json;
 
+pub struct Client {
+    client: Elasticsearch,
+}
+
+impl Client {
+    pub fn new() -> Self {
+        let transport = Transport::single_node(XIV_API).unwrap();
+        let client = Elasticsearch::new(transport);
+        Self { client }
+    }
+}
+
 static XIV_API: &str = "https://xivapi.com/search";
 
 struct Query {
