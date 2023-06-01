@@ -2,6 +2,7 @@ use elasticsearch::{
     http::{headers::HeaderMap, request::JsonBody, transport::Transport, Method},
     Elasticsearch, SearchParts,
 };
+use serde::Serialize;
 use serde_json::json;
 
 static XIVAPI: &str = "https://xivapi.com/search";
@@ -26,46 +27,74 @@ impl Client {
         Self{ client, key: Some(key) }
     }
 
+    //TODO remove, we'll take Query as argument and process with internal methods instead.
     fn client(&self) -> &Elasticsearch{
         &self.client
     }
 }
 
-
+#[derive(Serialize)]
 struct Query {
 	indexes: Vec<String>,
     columns: Vec<String>,
-    body: Vec<Filter>,
+    query: Vec<Filter>,
     from: Option<i32>,
     size: Option<i32>,
-    sort: Option<String>,
-
+    sort: Option<(String, String)>,
+    range: Option<Range>,
 }
 
+#[derive(Serialize)]
 enum Filter{}
+
+#[derive(Serialize)]
+struct Range{
+    from: (String, String),
+    to: (String, String)
+}
 
 async fn get_item() -> String {
     let client = Client::new();
-    let query = json!(
-        {   "body":{
-            "query":{"bool":{
-                "must": [
-                    {
-                    "wildcard": {
-                        "NameCombined_en": "*aiming*"
+    let query = json!({
+        "body":{
+            "query":{
+                "bool":{
+                    "must": [{
+                        "wildcard": {
+                            "NameCombined_en": "*aiming*"
                         }
-                    }
-                ]}},
-            "from": "0",
-            "size": "10",
-            "sort": [
+                    }],
+                    "filter": [{
+                        "range": {
+                            "ItemSearchCategory.ID": {
+                                "gt": 1
+                                }
+                            }
+                    },
                     {
-                        "LevelItem": "desc"
-                    }
-            ],
+                        "range": {
+                            "LevelItem": {
+                                "gte": "100"
+                                }
+                            }
+                        },
+                        {
+                        "range": {
+                            "LevelItem": {
+                                "lte": "125"
+                                }
+                            }
+                        }
+                    ]},    
+            },
+            "from": "0",
+            "size": "2",
+            "sort": [{
+                "LevelItem": "desc"
+                }],
         },
-            "indexes": "item",
-            "columns": "Name, LevelItem"}
+        "indexes": "item",
+        "columns": "ID,Name,Icon,LevelItem,LevelEquip,ItemSearchCategory.Name"}
     );
     println!("{:#}", query);
     let query: JsonBody<serde_json::Value> = query.into();
@@ -92,36 +121,7 @@ mod test {
 
 	#[tokio::test]
 	async fn a() {
-		assert_eq!(get_item().await, "".to_string());
+		assert_eq!(get_item().await, "{\"Pagination\":{\"Page\":1,\"PageNext\":null,\"PagePrev\":null,\"PageTotal\":1,\"Results\":2,\"ResultsPerPage\":100,\"ResultsTotal\":34},\"Results\":[{\"ID\":10713,\"Icon\":\"\\/i\\/040000\\/040215.png\",\"ItemSearchCategory\":{\"Name\":\"Head\"},\"LevelEquip\":52,\"LevelItem\":125,\"Name\":\"Wyvernskin Pot Helm of Maiming\"},{\"ID\":10720,\"Icon\":\"\\/i\\/043000\\/043266.png\",\"ItemSearchCategory\":{\"Name\":\"Body\"},\"LevelEquip\":52,\"LevelItem\":125,\"Name\":\"Holy Rainbow Shirt of Maiming\"}],\"SpeedMs\":4}".to_string());
 	}
 }
 
-/*"query":{
-                "bool": {
-                    
-                    "filter": [
-                        {
-                            "range": {
-                                "ItemSearchCategory.ID": {
-                                    "gt": "1"
-                                }
-                            }
-                        },
-                        {
-                            "range": {
-                                "LevelItem": {
-                                    "gte": "100"
-                                }
-                            }
-                        },
-                        {
-                            "range": {
-                                "LevelItem": {
-                                    "lte": "125"
-                                }
-                            }
-                        },
-                    ],
-                },
-                "
-            }, */
